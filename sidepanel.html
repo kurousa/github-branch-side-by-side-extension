@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Branch Side-by-Side</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="input-group">
+        <label for="branch-input">Target Branch / Commit:</label>
+        <div class="controls">
+          <input type="text" id="branch-input" placeholder="e.g. develop, feature/xyz" />
+          <button id="load-btn">Load</button>
+        </div>
+      </div>
+      <div id="status-message" class="status-message"></div>
+    </div>
+  </div>
+  
+  <div class="iframe-container">
+    <iframe id="github-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="GitHub File View"></iframe>
+    <div id="placeholder" class="placeholder">
+      <p>Enter a branch name and click Load</p>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

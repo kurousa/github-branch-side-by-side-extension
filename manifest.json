@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub Branch Side-by-Side",
+  "version": "1.0",
+  "description": "View files from another branch side-by-side in GitHub",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "declarativeNetRequest",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://github.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  }
+}
