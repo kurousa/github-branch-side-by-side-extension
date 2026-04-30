@@ -128,27 +128,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // --- Main Logic ---
-  async function init() {
-    await loadSettings();
-
-    const tab = await getCurrentTab();
+  async function handleTabUpdate(tab, isInit = false) {
     if (!tab || !tab.url) {
-      showError("Could not determine current tab URL.");
+      if (isInit) showError("Could not determine current tab URL.");
       return;
     }
 
     const match = tab.url.match(githubBlobRegex);
     if (!match) {
-      showError("Not a valid GitHub file page (blob view).");
+      if (isInit) showError("Not a valid GitHub file page (blob view).");
       return;
     }
 
+    const newOwner = match[1];
+    const newRepo = match[2];
+    const newBranch = match[3];
+    const newFilePath = match[4];
+
+    if (currentTabInfo && currentTabInfo.originalUrl === tab.url) {
+      return; // URL has not changed
+    }
+
+    const repoChanged = !currentTabInfo || currentTabInfo.owner !== newOwner || currentTabInfo.repo !== newRepo;
+    const fileChanged = !currentTabInfo || currentTabInfo.filePath !== newFilePath;
+
     currentTabInfo = {
-      owner: match[1],
-      repo: match[2],
-      currentBranch: match[3],
-      filePath: match[4],
+      owner: newOwner,
+      repo: newRepo,
+      currentBranch: newBranch,
+      filePath: newFilePath,
       originalUrl: tab.url
     };
 
@@ -161,13 +169,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     statusMessage.textContent = `Current branch: ${currentTabInfo.currentBranch}`;
+    statusMessage.classList.remove('error-message');
     
-    // Start fetching branches asynchronously
-    fetchBranches();
+    if (repoChanged) {
+      // リポジトリが変わった場合はブランチリストを再取得し、表示をリセット
+      fetchBranches();
+      if (!isInit) {
+        branchInput.value = '';
+        placeholder.style.display = 'flex';
+        githubFrame.style.display = 'none';
+        githubFrame.src = '';
+      }
+    } else if (fileChanged && !isInit) {
+      // リポジトリが同じでファイルが変わった場合
+      // すでにターゲットブランチを表示中なら新しいファイルでiframeをリロード
+      if (branchInput.value.trim() && githubFrame.style.display === 'block') {
+        loadTargetBranch();
+      } else {
+        placeholder.style.display = 'flex';
+        githubFrame.style.display = 'none';
+        githubFrame.src = '';
+      }
+    }
     
     updateLoadButtonState();
-    branchInput.focus();
+    if (isInit) branchInput.focus();
   }
+
+  // --- Main Logic ---
+  async function init() {
+    await loadSettings();
+    const tab = await getCurrentTab();
+    await handleTabUpdate(tab, true);
+  }
+
+  // タブのURLが更新されたときにサイドパネルをリフレッシュ
+  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    if (changeInfo.url) {
+      const currentTab = await getCurrentTab();
+      if (currentTab && currentTab.id === tabId) {
+        handleTabUpdate(tab);
+      }
+    }
+  });
+
+  // アクティブなタブが切り替わったときにサイドパネルをリフレッシュ
+  chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    if (tab && tab.url) {
+      const currentTab = await getCurrentTab();
+      if (currentTab && currentTab.id === tab.id) {
+        handleTabUpdate(tab);
+      }
+    }
+  });
 
   function showError(msg) {
     statusMessage.textContent = msg;
